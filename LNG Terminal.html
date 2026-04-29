@@ -1,0 +1,1331 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>LNG CARGO TERMINAL // LIVE</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#000;
+    --panel:#0a0d0a;
+    --panel-2:#0f1410;
+    --border:#1a2418;
+    --border-hot:#1f3a22;
+    --grid:#0e1a10;
+    --text:#b8beb5;
+    --dim:#5c6a59;
+    --dimmer:#333e32;
+    --green:#3ecf7a;
+    --green-d:#2a9957;
+    --green-soft:#0f3a1e;
+    --red:#d94444;
+    --red-d:#9e2525;
+    --red-soft:#3a1010;
+    --amber:#c89030;
+    --amber-soft:#4a3600;
+    --cyan:#6be7ff;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--text);font-family:"Inter",system-ui,sans-serif;overflow:hidden}
+  .mono{font-family:"JetBrains Mono",ui-monospace,monospace;font-feature-settings:"zero","cv01"}
+  .app{display:grid;grid-template-rows:28px 28px 1fr 22px;height:100vh;width:100vw}
+
+  /* ===== TOP MENU ===== */
+  .menu{display:flex;align-items:center;gap:0;background:#050805;border-bottom:1px solid var(--border);font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--dim);padding:0 10px}
+  .menu .brand{color:var(--green);font-weight:700;letter-spacing:.14em;margin-right:18px}
+  .menu .brand .dot{display:inline-block;width:6px;height:6px;background:var(--green);border-radius:50%;margin-right:7px;box-shadow:0 0 6px rgba(62,207,122,.5);animation:pulse 1.6s infinite}
+  .menu .item{padding:0 10px;height:28px;display:flex;align-items:center;cursor:pointer;border-right:1px solid var(--border)}
+  .menu .item:first-of-type{border-left:1px solid var(--border)}
+  .menu .item:hover{background:var(--panel-2);color:var(--text)}
+  .menu .item.active{color:var(--green);background:#081208}
+  .menu .spacer{flex:1}
+  .menu .stat{padding:0 10px;color:var(--dim)}
+  .menu .stat b{color:var(--text);font-weight:500}
+  .menu .stat .up{color:var(--green)}
+  .menu .stat .down{color:var(--red)}
+
+  /* ===== TICKER ===== */
+  .ticker{overflow:hidden;background:#040604;border-bottom:1px solid var(--border);position:relative;height:28px}
+  .ticker .track{display:flex;gap:28px;white-space:nowrap;position:absolute;top:0;left:0;height:28px;align-items:center;font-family:"JetBrains Mono",monospace;font-size:11px;animation:ticker 240s linear infinite;padding-left:100%}
+  .ticker .tick{color:var(--dim)}
+  .ticker .tick b{color:var(--text);font-weight:500;margin-right:6px;letter-spacing:.04em}
+  .ticker .tick .up{color:var(--green)}
+  .ticker .tick .down{color:var(--red)}
+  .ticker .tick .sep{color:var(--dimmer);margin:0 6px}
+  @keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+  /* ===== MAIN GRID ===== */
+  .main{display:grid;grid-template-columns:300px 1fr 340px;min-height:0;background:#000}
+  .col{border-right:1px solid var(--border);display:flex;flex-direction:column;min-height:0}
+  .col:last-child{border-right:none}
+  .panel-head{display:flex;align-items:center;gap:8px;padding:7px 10px;background:#060906;border-bottom:1px solid var(--border);font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.16em;color:var(--green);text-transform:uppercase}
+  .panel-head .spacer{flex:1}
+  .panel-head .chip{color:var(--dim);font-size:9px;letter-spacing:.14em}
+  .panel-head .chip b{color:var(--text)}
+
+  /* ===== LEFT: CARGO LIST ===== */
+  .filter-bar{display:flex;gap:4px;padding:6px;border-bottom:1px solid var(--border);background:#050805}
+  .fbtn{flex:1;border:1px solid var(--border);background:transparent;color:var(--dim);font-family:"JetBrains Mono",monospace;font-size:10px;padding:4px 6px;cursor:pointer;letter-spacing:.08em;text-transform:uppercase}
+  .fbtn:hover{color:var(--text);border-color:var(--border-hot)}
+  .fbtn.active{color:var(--green);border-color:var(--green);background:rgba(0,255,106,.06)}
+  .fbtn.red.active{color:var(--red);border-color:var(--red);background:rgba(255,46,46,.08)}
+  .cargo-list{flex:1;overflow-y:auto;font-family:"JetBrains Mono",monospace}
+  .cargo-list::-webkit-scrollbar{width:8px}
+  .cargo-list::-webkit-scrollbar-track{background:#050805}
+  .cargo-list::-webkit-scrollbar-thumb{background:var(--border-hot);border-radius:0}
+
+  .row{display:grid;grid-template-columns:10px 1fr auto;gap:8px;padding:7px 10px;border-bottom:1px solid #0b0f0a;cursor:pointer;align-items:center;position:relative}
+  .row:hover{background:#070b07}
+  .row.active{background:rgba(0,255,106,.07)}
+  .row.active::before{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--green)}
+  .row .stat-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 4px rgba(62,207,122,.4)}
+  .row.discharge .stat-dot{background:var(--red);box-shadow:0 0 4px rgba(217,68,68,.4)}
+  .row.port .stat-dot{background:var(--amber);box-shadow:0 0 4px rgba(200,144,48,.4)}
+  .row .name{font-size:11px;color:var(--text);font-weight:500;letter-spacing:.02em;text-overflow:ellipsis;overflow:hidden;white-space:nowrap}
+  .row .sub{font-size:9px;color:var(--dim);margin-top:2px;letter-spacing:.04em}
+  .row .sub .arrow{color:var(--dimmer);margin:0 4px}
+  .row .cap{font-size:10px;color:var(--green);text-align:right}
+  .row.discharge .cap{color:var(--red)}
+  .row.port .cap{color:var(--amber)}
+  .row .cap small{display:block;font-size:8px;color:var(--dim);margin-top:1px;letter-spacing:.08em}
+
+  /* ===== CENTER: GLOBE ===== */
+  .globe-wrap{position:relative;flex:1;background:#000;overflow:hidden;min-height:0}
+  .globe-grid-bg{position:absolute;inset:0;background-image:linear-gradient(rgba(62,207,122,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(62,207,122,.02) 1px,transparent 1px);background-size:40px 40px;pointer-events:none}
+  .globe-svg{position:absolute;inset:0;width:100%;height:100%;cursor:grab;user-select:none;-webkit-user-select:none}
+  .globe-svg:active{cursor:grabbing}
+
+  /* overlay hud */
+  .hud-tl,.hud-tr,.hud-br,.hud-bl{user-select:none;-webkit-user-select:none}
+  .hud-tl{position:absolute;top:10px;left:10px;font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--green);letter-spacing:.12em;pointer-events:none}
+  .hud-tl .lbl{color:var(--dim);margin-right:6px}
+  .hud-tl .line{margin-bottom:3px}
+  .hud-tr{position:absolute;top:10px;right:10px;font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--green);letter-spacing:.12em;text-align:right;pointer-events:none}
+  .hud-br{position:absolute;bottom:10px;right:10px;font-family:"JetBrains Mono",monospace;font-size:9px;color:var(--dim);letter-spacing:.14em;text-align:right;pointer-events:none}
+  .hud-bl{position:absolute;bottom:10px;left:10px;font-family:"JetBrains Mono",monospace;font-size:9px;color:var(--dim);letter-spacing:.12em;pointer-events:none;display:flex;gap:14px;align-items:center}
+  .legend-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+  .legend-line{display:inline-block;width:16px;height:2px;margin-right:5px;vertical-align:3px}
+
+  .globe-ctrls{position:absolute;top:96px;left:10px;display:flex;flex-direction:column;gap:4px}
+  .gbtn{width:28px;height:28px;border:1px solid var(--border);background:#040604;color:var(--dim);font-family:"JetBrains Mono",monospace;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;user-select:none}
+  .gbtn:hover{color:var(--green);border-color:var(--border-hot)}
+  .gbtn.on{color:var(--green);border-color:var(--green)}
+  .gbtn .k{font-size:10px}
+
+  /* vessel labels overlay (HTML) */
+  .vlabel{position:absolute;transform:translate(-50%,-140%);font-family:"JetBrains Mono",monospace;font-size:10px;color:#d8fdd8;background:rgba(0,0,0,.78);border:1px solid var(--green);padding:3px 6px;pointer-events:none;white-space:nowrap;letter-spacing:.04em;z-index:5}
+  .vlabel.red{color:#ffd8d8;border-color:var(--red)}
+  .vlabel.amber{color:#ffeaa3;border-color:var(--amber)}
+  .vlabel::after{content:"";position:absolute;left:50%;bottom:-6px;width:0;height:0;margin-left:-3px;border:3px solid transparent;border-top-color:var(--green)}
+  .vlabel.red::after{border-top-color:var(--red)}
+  .vlabel.amber::after{border-top-color:var(--amber)}
+  .vlabel .tick{color:var(--dim);font-size:8px;margin-top:1px;letter-spacing:.08em}
+
+  /* ===== RIGHT: DETAIL ===== */
+  .detail{flex:1;overflow-y:auto;padding:0}
+  .detail::-webkit-scrollbar{width:8px}
+  .detail::-webkit-scrollbar-track{background:#050805}
+  .detail::-webkit-scrollbar-thumb{background:var(--border-hot)}
+  .d-hero{padding:14px 14px 12px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,#071008 0%,#040604 100%)}
+  .d-name{font-family:"JetBrains Mono",monospace;font-size:15px;font-weight:600;color:var(--text);letter-spacing:.04em}
+  .d-imo{font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--dim);margin-top:2px;letter-spacing:.14em}
+  .d-status{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:3px 7px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;border:1px solid var(--green);color:var(--green);background:rgba(0,255,106,.05)}
+  .d-status.discharge{border-color:var(--red);color:var(--red);background:rgba(255,46,46,.06)}
+  .d-status.port{border-color:var(--amber);color:var(--amber);background:rgba(255,184,0,.06)}
+  .d-status .dt{width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 6px currentColor}
+
+  .d-section{padding:12px 14px;border-bottom:1px solid var(--border)}
+  .d-section h4{margin:0 0 8px;font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--dim);letter-spacing:.16em;text-transform:uppercase;font-weight:500}
+  .kv{display:grid;grid-template-columns:110px 1fr;gap:6px 10px;font-family:"JetBrains Mono",monospace;font-size:11px}
+  .kv dt{color:var(--dim);letter-spacing:.04em}
+  .kv dd{margin:0;color:var(--text)}
+  .kv dd.g{color:var(--green)}
+  .kv dd.r{color:var(--red)}
+  .kv dd.a{color:var(--amber)}
+
+  .route-block{font-family:"JetBrains Mono",monospace;font-size:11px}
+  .route-row{display:grid;grid-template-columns:16px 1fr auto;gap:8px;padding:6px 0;align-items:start}
+  .route-row .bullet{width:8px;height:8px;border-radius:50%;margin-top:4px;background:var(--green)}
+  .route-row.load .bullet{background:var(--green);box-shadow:0 0 6px var(--green)}
+  .route-row.now .bullet{background:var(--amber);box-shadow:0 0 6px var(--amber)}
+  .route-row.disc .bullet{background:var(--red);box-shadow:0 0 6px var(--red)}
+  .route-row .lbl{color:var(--text)}
+  .route-row .lbl small{display:block;color:var(--dim);font-size:9px;margin-top:2px;letter-spacing:.1em;text-transform:uppercase}
+  .route-row .t{color:var(--dim);font-size:10px}
+  .route-line{margin-left:3px;width:2px;height:14px;background:var(--border-hot);margin-top:-2px;margin-bottom:-2px}
+
+  .bars{display:grid;gap:4px;margin-top:4px}
+  .bar{display:grid;grid-template-columns:60px 1fr 50px;gap:8px;align-items:center;font-family:"JetBrains Mono",monospace;font-size:10px}
+  .bar .l{color:var(--dim);letter-spacing:.06em}
+  .bar .b{height:8px;background:#0a0d0a;border:1px solid var(--border);position:relative;overflow:hidden}
+  .bar .b span{position:absolute;left:0;top:0;bottom:0;background:var(--green)}
+  .bar.r .b span{background:var(--red)}
+  .bar .v{color:var(--text);text-align:right}
+  .bar.r .v{color:var(--red)}
+
+  .mini-chart{height:60px;margin-top:6px}
+
+  /* ===== STATUS BAR ===== */
+  .status{display:flex;align-items:center;gap:0;background:#050805;border-top:1px solid var(--border);font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--dim);padding:0}
+  .status .s{padding:0 12px;height:22px;display:flex;align-items:center;border-right:1px solid var(--border);gap:6px}
+  .status .s:first-child{border-left:1px solid var(--border)}
+  .status .s.ok{color:var(--green)}
+  .status .s.warn{color:var(--amber)}
+  .status .s.err{color:var(--red)}
+  .status .s b{color:var(--text);font-weight:500}
+  .status .spacer{flex:1}
+
+  /* SVG route style helpers */
+  .route-path{fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .graticule{fill:none;stroke:rgba(120,140,125,.06);stroke-width:.4}
+  .equator{stroke:rgba(120,140,125,.1);stroke-width:.6;stroke-dasharray:2 3}
+  .land{fill:#0d140f;stroke:rgba(160,180,165,.35);stroke-width:.55;stroke-linejoin:round}
+  .land-back{fill:#070a08;stroke:rgba(160,180,165,.1);stroke-width:.4}
+  .sphere{fill:#030604;stroke:rgba(180,200,185,.22);stroke-width:.8}
+  .port-dot{fill:var(--green);stroke:#000;stroke-width:.5}
+  .port-dot.imp{fill:var(--red)}
+  .port-label{font-family:"JetBrains Mono",monospace;font-size:8px;fill:var(--dim);letter-spacing:.08em;text-transform:uppercase;pointer-events:none}
+
+  .ves-dot{cursor:pointer}
+  .ves-hit{fill:transparent;cursor:pointer}
+  .ves-ring{fill:none;stroke:var(--green);stroke-width:1;opacity:0;transform-origin:center;transform-box:fill-box}
+  .ves-dot.active .ves-ring{opacity:.6;animation:ring 1.6s infinite}
+  @keyframes ring{0%{transform:scale(.8);opacity:.6}100%{transform:scale(2.2);opacity:0}}
+  .ves-dot.active .ves-core{stroke:#cfd6cc;stroke-width:.8}
+  .ves-dot:hover .ves-core{stroke:#fff;stroke-width:.8}
+  .ves-dot:hover .ves-ring{opacity:.4}
+
+  /* Vessel hover tooltip */
+  .vtip{position:absolute;transform:translate(-50%,calc(-100% - 10px));font-family:"JetBrains Mono",monospace;font-size:10px;color:#d0d6cd;background:rgba(0,0,0,.92);border:1px solid #2a3a2c;padding:5px 8px;pointer-events:none;white-space:nowrap;letter-spacing:.04em;z-index:20;display:none}
+  .vtip.show{display:block}
+  .vtip .vn{color:#cfd6cc;font-weight:500}
+  .vtip .vr{color:var(--dim);font-size:9px;margin-top:2px;letter-spacing:.06em}
+  .vtip .vs{display:inline-block;width:6px;height:6px;margin-right:5px;vertical-align:1px;border-radius:1px;transform:rotate(45deg)}
+  .vtip::after{content:"";position:absolute;left:50%;bottom:-5px;width:0;height:0;margin-left:-4px;border:4px solid transparent;border-top-color:#2a3a2c}
+
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===== MENU ===== -->
+  <div class="menu">
+    <div class="brand"><span class="dot"></span>LNG-X // TERMINAL</div>
+    <div class="item active">FLEET</div>
+    <div class="item">ROUTES</div>
+    <div class="item">PORTS</div>
+    <div class="item">MARKET</div>
+    <div class="item">ANALYTICS</div>
+    <div class="item">ALERTS</div>
+    <div class="spacer"></div>
+    <div class="stat">TTF <b>38.14</b> <span class="down">−0.42</span></div>
+    <div class="stat">JKM <b>13.92</b> <span class="up">+0.18</span></div>
+    <div class="stat">HH <b>2.18</b> <span class="up">+0.03</span></div>
+    <div class="stat">BRENT <b>82.41</b> <span class="down">−0.66</span></div>
+    <div class="stat" id="clock">21 APR 26 · 14:22:07 UTC</div>
+  </div>
+
+  <!-- ===== TICKER ===== -->
+  <div class="ticker">
+    <div class="track" id="ticker-track"></div>
+  </div>
+
+  <!-- ===== MAIN ===== -->
+  <div class="main">
+    <!-- LEFT -->
+    <div class="col">
+      <div class="panel-head">
+        <span>ACTIVE CARGOES</span>
+        <span class="spacer"></span>
+        <span class="chip">TOTAL <b id="count-total">—</b></span>
+      </div>
+      <div class="filter-bar">
+        <button class="fbtn active" data-filter="ALL">ALL</button>
+        <button class="fbtn" data-filter="LOADING">LOAD</button>
+        <button class="fbtn red" data-filter="DISCHARGE">DISCH</button>
+        <button class="fbtn" data-filter="TRANSIT">TRANSIT</button>
+      </div>
+      <div class="cargo-list" id="cargo-list"></div>
+    </div>
+
+    <!-- CENTER: GLOBE -->
+    <div class="col" style="background:#000">
+      <div class="panel-head">
+        <span>GLOBAL FLEET MAP // 3D</span>
+        <span class="spacer"></span>
+        <span class="chip">PROJ <b>ORTHO</b></span>
+        <span class="chip">LAT <b id="hud-lat">0°</b></span>
+        <span class="chip">LON <b id="hud-lon">0°</b></span>
+      </div>
+      <div class="globe-wrap" id="globe-wrap">
+        <div class="globe-grid-bg"></div>
+
+        <svg class="globe-svg" id="globe" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <radialGradient id="oceanGrad" cx="50%" cy="42%" r="55%">
+              <stop offset="0%" stop-color="#050a08"/>
+              <stop offset="60%" stop-color="#020403"/>
+              <stop offset="100%" stop-color="#000"/>
+            </radialGradient>
+          </defs>
+          <circle id="sphere" class="sphere" cx="500" cy="300" r="285" fill="url(#oceanGrad)"/>
+          <g id="graticule"></g>
+          <g id="land-back"></g>
+          <g id="routes"></g>
+          <g id="land-front"></g>
+          <g id="ports"></g>
+          <g id="vessels"></g>
+        </svg>
+
+        <div class="hud-tl">
+          <div class="line"><span class="lbl">SYS</span>LNG-X.NET.01</div>
+          <div class="line"><span class="lbl">FEED</span>AIS · 1.2s</div>
+          <div class="line"><span class="lbl">TRACKED</span><span id="hud-tracked">—</span></div>
+        </div>
+        <div class="hud-tr" id="hud-tr">
+          <div>GLOBE 1.0</div>
+          <div style="color:var(--dim);margin-top:3px">DRAG · ROTATE</div>
+        </div>
+
+        <div class="globe-ctrls">
+          <button class="gbtn on" id="btn-spin" title="Auto-rotate">↻</button>
+          <button class="gbtn" id="btn-zoom-in">+</button>
+          <button class="gbtn" id="btn-zoom-out">−</button>
+          <button class="gbtn" id="btn-reset" title="Reset"><span class="k">R</span></button>
+        </div>
+
+        <div class="hud-bl">
+          <span><span class="legend-line" style="background:var(--green)"></span>LOAD / EXPORT</span>
+          <span><span class="legend-line" style="background:var(--red)"></span>DISCHARGE / IMPORT</span>
+          <span><span class="legend-line" style="background:var(--amber)"></span>TRANSIT</span>
+          <span><span class="legend-dot" style="background:var(--green)"></span>VESSEL</span>
+          <span><span class="legend-dot" style="background:var(--amber);border:1px solid var(--amber)"></span>PORT</span>
+        </div>
+
+        <div class="hud-br">
+          MERCATOR · ORTHO · <span id="hud-count">0</span> VESSELS · <span id="hud-routes">0</span> ROUTES
+        </div>
+
+        <!-- vessel labels (HTML overlay) -->
+        <div id="vlabels" style="position:absolute;inset:0;pointer-events:none"></div>
+        <!-- hover tooltip -->
+        <div class="vtip" id="vtip"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="col">
+      <div class="panel-head">
+        <span>CARGO DETAIL</span>
+        <span class="spacer"></span>
+        <span class="chip" id="detail-imo"></span>
+      </div>
+      <div class="detail" id="detail"></div>
+    </div>
+  </div>
+
+  <!-- ===== STATUS ===== -->
+  <div class="status">
+    <div class="s ok">● LIVE</div>
+    <div class="s">AIS <b>NOMINAL</b></div>
+    <div class="s">LAT <b id="st-lat">000.00°</b></div>
+    <div class="s">LON <b id="st-lon">000.00°</b></div>
+    <div class="s">FPS <b id="st-fps">60</b></div>
+    <div class="spacer"></div>
+    <div class="s">F1 HELP</div>
+    <div class="s">F2 FLEET</div>
+    <div class="s">F3 ROUTES</div>
+    <div class="s warn">● MKT OPEN</div>
+    <div class="s">USR <b>GMAIL</b></div>
+  </div>
+
+</div>
+
+<script>
+// ====== LNG DATA ======
+// Major LNG ports (lon, lat) — real-world coordinates
+const PORTS = [
+  // Exporters (green)
+  { id:"RASLAF",  name:"Ras Laffan",   ctry:"QAT", type:"export", lon:51.59, lat:25.90, mtpa:77.0 },
+  { id:"SABINE",  name:"Sabine Pass",  ctry:"USA", type:"export", lon:-93.87, lat:29.73, mtpa:30.0 },
+  { id:"CORPUS",  name:"Corpus Christi",ctry:"USA",type:"export",lon:-97.40, lat:27.80, mtpa:19.5 },
+  { id:"FREEPT",  name:"Freeport",     ctry:"USA", type:"export", lon:-95.35, lat:28.95, mtpa:15.0 },
+  { id:"PLAQ",    name:"Plaquemines",  ctry:"USA", type:"export", lon:-89.95, lat:29.50, mtpa:10.0 },
+  { id:"CALC",    name:"Calcasieu",    ctry:"USA", type:"export", lon:-93.36, lat:29.77, mtpa:11.0 },
+  { id:"GORGON",  name:"Gorgon",       ctry:"AUS", type:"export", lon:115.00, lat:-20.60, mtpa:15.0 },
+  { id:"WHEAT",   name:"Wheatstone",   ctry:"AUS", type:"export", lon:115.35, lat:-21.57, mtpa:8.9 },
+  { id:"ICHTHY",  name:"Ichthys",      ctry:"AUS", type:"export", lon:130.80, lat:-12.45, mtpa:8.4 },
+  { id:"GLNG",    name:"Gladstone",    ctry:"AUS", type:"export", lon:151.25, lat:-23.85, mtpa:7.8 },
+  { id:"BONTANG", name:"Bontang",      ctry:"IDN", type:"export", lon:117.48, lat:0.12, mtpa:16.9 },
+  { id:"TANGG",   name:"Tangguh",      ctry:"IDN", type:"export", lon:133.20, lat:-2.40, mtpa:7.6 },
+  { id:"BINTULU", name:"Bintulu",      ctry:"MYS", type:"export", lon:113.04, lat:3.17, mtpa:32.0 },
+  { id:"YAMAL",   name:"Yamal LNG",    ctry:"RUS", type:"export", lon:71.50, lat:71.25, mtpa:17.5 },
+  { id:"ARCTIC",  name:"Arctic LNG 2", ctry:"RUS", type:"export", lon:73.10, lat:70.60, mtpa:6.6 },
+  { id:"SAKH",    name:"Sakhalin-2",   ctry:"RUS", type:"export", lon:142.70, lat:46.60, mtpa:9.6 },
+  { id:"SKIKDA",  name:"Arzew/Skikda", ctry:"DZA", type:"export", lon:-0.30, lat:35.78, mtpa:25.3 },
+  { id:"IDKU",    name:"Idku",         ctry:"EGY", type:"export", lon:30.30, lat:31.45, mtpa:7.2 },
+  { id:"DAMIET",  name:"Damietta",     ctry:"EGY", type:"export", lon:31.82, lat:31.47, mtpa:5.0 },
+  { id:"BONNY",   name:"Bonny Island", ctry:"NGA", type:"export", lon:7.02, lat:4.45, mtpa:22.2 },
+  { id:"SORN",    name:"Dongki-Senoro",ctry:"IDN", type:"export", lon:122.55, lat:-1.10, mtpa:2.0 },
+
+  // Importers (red)
+  { id:"FUTTSU",  name:"Futtsu",       ctry:"JPN", type:"import", lon:139.82, lat:35.30 },
+  { id:"NEGISH",  name:"Negishi",      ctry:"JPN", type:"import", lon:139.65, lat:35.42 },
+  { id:"SENBOK",  name:"Senboku",      ctry:"JPN", type:"import", lon:135.42, lat:34.51 },
+  { id:"INCHEON", name:"Incheon",      ctry:"KOR", type:"import", lon:126.60, lat:37.45 },
+  { id:"TANGSH",  name:"Tangshan",     ctry:"CHN", type:"import", lon:118.95, lat:39.15 },
+  { id:"YANT",    name:"Yantian",      ctry:"CHN", type:"import", lon:114.27, lat:22.57 },
+  { id:"ZEEB",    name:"Zeebrugge",    ctry:"BEL", type:"import", lon:3.20, lat:51.35 },
+  { id:"SINES",   name:"Sines",        ctry:"PRT", type:"import", lon:-8.82, lat:37.93 },
+  { id:"MILFD",   name:"Milford Haven",ctry:"GBR", type:"import", lon:-5.05, lat:51.70 },
+  { id:"GATE",    name:"Gate Rotterdam",ctry:"NLD",type:"import", lon:4.05, lat:51.96 },
+  { id:"BARC",    name:"Barcelona",    ctry:"ESP", type:"import", lon:2.18, lat:41.35 },
+  { id:"MONT",    name:"Montoir",      ctry:"FRA", type:"import", lon:-2.15, lat:47.31 },
+  { id:"PIOM",    name:"Piombino FSRU",ctry:"ITA", type:"import", lon:10.50, lat:42.93 },
+  { id:"REVTHS",  name:"Revythoussa",  ctry:"GRC", type:"import", lon:23.48, lat:37.95 },
+  { id:"DHAM",    name:"Dahej",        ctry:"IND", type:"import", lon:72.55, lat:21.70 },
+  { id:"KOCHI",   name:"Kochi",        ctry:"IND", type:"import", lon:76.25, lat:9.98 },
+  { id:"MAP",     name:"Map Ta Phut",  ctry:"THA", type:"import", lon:101.15, lat:12.68 },
+  { id:"COVE",    name:"Cove Point",   ctry:"USA", type:"import", lon:-76.40, lat:38.40 },
+  { id:"ALT",     name:"Altamira",     ctry:"MEX", type:"import", lon:-97.85, lat:22.48 },
+  { id:"ESC",     name:"Escobar",      ctry:"ARG", type:"import", lon:-58.80, lat:-34.15 },
+  { id:"PEC",     name:"Pecém",        ctry:"BRA", type:"import", lon:-38.80, lat:-3.55 },
+  { id:"MINA",    name:"Mina Al-Ahmadi",ctry:"KWT",type:"import", lon:48.15, lat:29.07 },
+  { id:"JEBEL",   name:"Jebel Ali",    ctry:"ARE", type:"import", lon:55.03, lat:25.00 }
+];
+
+const PORT_BY_ID = Object.fromEntries(PORTS.map(p=>[p.id,p]));
+
+// ======================================================
+// SHIPPING LANE WAYPOINTS — real chokepoints/canals/capes
+// Routes are built by chaining the right waypoints so
+// great-circle paths never cross land.
+// ======================================================
+const WP = {
+  // Middle East / Indian Ocean
+  HORMUZ:  [56.25, 26.55],   // Strait of Hormuz
+  GULF_S:  [57.20, 24.30],   // just outside Hormuz, Gulf of Oman
+  ARABIAN: [62.00, 18.00],
+  BAB:     [43.40, 12.60],   // Bab el-Mandeb (Red Sea south)
+  REDSEA_M:[38.50, 22.00],
+  SUEZ_S:  [32.60, 27.50],   // Gulf of Suez
+  SUEZ_N:  [32.35, 31.30],   // Suez Canal north / Port Said
+  // Mediterranean
+  MED_E:   [28.00, 33.50],
+  MED_C:   [18.00, 35.00],
+  MED_W:   [5.00, 37.50],
+  GIB:     [-5.60, 35.95],   // Strait of Gibraltar
+  ATL_NE:  [-9.00, 38.00],
+  ENGLISH: [-5.00, 49.50],   // SW approaches
+  CHANNEL: [2.00, 51.00],    // Channel to N Sea
+  // Africa cape
+  CAPE_W:  [17.00, -35.00],
+  CAPE_E:  [25.00, -36.00],
+  MOZ_N:   [42.00, -15.00],
+  // Atlantic crossings
+  ATL_MID: [-40.00, 25.00],
+  ATL_TRO: [-30.00, 5.00],
+  GUINEA:  [2.00, 2.00],
+  // Panama
+  PAN_A:   [-79.80, 9.30],   // Panama Atlantic (Colón)
+  PAN_P:   [-79.50, 8.80],   // Panama Pacific
+  CARIB_W: [-83.00, 16.00],
+  GULFMEX: [-88.00, 25.00],
+  // Pacific
+  PAC_E:   [-120.00, 15.00],
+  PAC_MID: [-160.00, 22.00],
+  PAC_NW:  [150.00, 30.00],
+  LUZON:   [121.50, 20.00],  // Luzon Strait
+  TAIWAN:  [122.50, 25.00],
+  EASTCHI: [125.00, 30.00],
+  JPN_S:   [135.00, 33.50],
+  KOREA_S: [128.50, 34.00],
+  // Malacca / Indonesia
+  MALACCA_W:[95.00, 5.50],
+  MALACCA_E:[104.50, 1.20], // Singapore
+  SCS:     [110.00, 8.00],   // South China Sea
+  LOMBOK:  [115.80, -8.50],  // Lombok Strait (VLGC alt)
+  SUNDA:   [105.50, -6.30],  // Sunda Strait
+  BANDA:   [125.00, -5.00],
+  ARAFURA: [135.00, -10.00],
+  TORRES:  [142.50, -10.50],
+  CORAL:   [150.00, -15.00],
+  NW_AU:   [118.00, -18.00],
+  // Arctic / N Atlantic
+  NORTH_C: [20.00, 71.00],   // North Cape
+  NORWAY_S:[4.00, 58.00],
+  BARENTS: [50.00, 72.00],
+  KARA:    [70.00, 73.00],
+  // India
+  IND_W:   [68.00, 20.00],
+  IND_S:   [77.00, 6.00]
+};
+
+// Given a great-circle between A and B, insert waypoints so the path goes around land.
+// Each rule: if origin & destination match patterns, use the waypoint chain.
+function routeWaypoints(from, to){
+  const F = PORT_BY_ID[from], T = PORT_BY_ID[to];
+  if (!F || !T) return [];
+  const isGulf = p => ["RASLAF","MINA","JEBEL"].includes(p.id);
+  const isUSGulf = p => ["SABINE","CORPUS","FREEPT","PLAQ","CALC"].includes(p.id);
+  const isNWEU = p => ["ZEEB","GATE","MILFD","MONT"].includes(p.id);
+  const isMED = p => ["BARC","SINES","PIOM","REVTHS","SKIKDA","IDKU","DAMIET"].includes(p.id);
+  const isNEAsia = p => ["FUTTSU","NEGISH","SENBOK","INCHEON","TANGSH","YANT"].includes(p.id);
+  const isAUS_NW = p => ["GORGON","WHEAT","ICHTHY"].includes(p.id);
+  const isAUS_E  = p => ["GLNG"].includes(p.id);
+  const isMYID   = p => ["BINTULU","BONTANG","TANGG","SORN"].includes(p.id);
+  const isRuArc  = p => ["YAMAL","ARCTIC"].includes(p.id);
+  const isSakh   = p => p.id==="SAKH";
+  const isNigeria= p => p.id==="BONNY";
+  const isEgypt  = p => ["IDKU","DAMIET"].includes(p.id);
+
+  // Qatar → NE Asia: Hormuz → Arabian → Malacca → SCS → Luzon/Taiwan → JPN/KOR
+  if (isGulf(F) && isNEAsia(T)) return [WP.HORMUZ, WP.GULF_S, WP.ARABIAN, WP.MALACCA_W, WP.MALACCA_E, WP.SCS, WP.LUZON, WP.EASTCHI];
+  // Qatar → India
+  if (isGulf(F) && T.id==="DHAM") return [WP.HORMUZ, WP.GULF_S, WP.IND_W];
+  if (isGulf(F) && T.id==="KOCHI") return [WP.HORMUZ, WP.GULF_S, WP.ARABIAN, WP.IND_S];
+  // Qatar → NW Europe (Suez route)
+  if (isGulf(F) && isNWEU(T)) return [WP.HORMUZ, WP.GULF_S, WP.ARABIAN, WP.BAB, WP.REDSEA_M, WP.SUEZ_S, WP.SUEZ_N, WP.MED_E, WP.MED_C, WP.MED_W, WP.GIB, WP.ATL_NE, WP.ENGLISH];
+  if (isGulf(F) && isMED(T)) return [WP.HORMUZ, WP.GULF_S, WP.ARABIAN, WP.BAB, WP.REDSEA_M, WP.SUEZ_S, WP.SUEZ_N, WP.MED_E];
+  // Egypt → Med
+  if (isEgypt(F) && (isMED(T)||isNWEU(T))) return [WP.MED_E];
+  // US Gulf → Europe
+  if (isUSGulf(F) && isNWEU(T)) return [WP.GULFMEX, WP.ATL_MID, WP.ATL_NE, WP.ENGLISH];
+  if (isUSGulf(F) && isMED(T)) return [WP.GULFMEX, WP.ATL_MID, WP.GIB];
+  // US Gulf → Asia (Panama)
+  if (isUSGulf(F) && isNEAsia(T)) return [WP.GULFMEX, WP.CARIB_W, WP.PAN_A, WP.PAN_P, WP.PAC_E, WP.PAC_MID, WP.PAC_NW, WP.JPN_S];
+  // US Gulf → LatAm east coast
+  if (isUSGulf(F) && T.id==="PEC") return [WP.GULFMEX, WP.ATL_MID];
+  if (isUSGulf(F) && T.id==="ESC") return [WP.GULFMEX, WP.ATL_MID, [-45,-10], [-55,-30]];
+  // Australia NW → Asia
+  if (isAUS_NW(F) && isNEAsia(T)) return [WP.NW_AU, WP.BANDA, WP.SCS, WP.LUZON, WP.EASTCHI];
+  // Australia East (Gladstone) → Asia
+  if (isAUS_E(F) && isNEAsia(T)) return [WP.CORAL, WP.TORRES, WP.BANDA, WP.SCS, WP.LUZON, WP.EASTCHI];
+  // Indonesia/Malaysia → Asia
+  if (isMYID(F) && isNEAsia(T)) return [WP.SCS, WP.LUZON, WP.EASTCHI];
+  // Russia Yamal → NW Europe (Arctic via Barents → North Cape)
+  if (isRuArc(F) && isNWEU(T)) return [WP.KARA, WP.BARENTS, WP.NORTH_C, WP.NORWAY_S];
+  if (isRuArc(F) && isNEAsia(T)) return [WP.KARA, WP.BARENTS, WP.NORTH_C]; // NSR eastbound handled separately, keep symbolic
+  // Sakhalin → Japan
+  if (isSakh(F) && isNEAsia(T)) return [[142, 44], WP.JPN_S];
+  // Nigeria → Europe
+  if (isNigeria(F) && (isNWEU(T)||isMED(T))) return [WP.GUINEA, WP.ATL_TRO, WP.ATL_MID, WP.GIB];
+  if (isNigeria(F) && T.id==="DHAM") return [WP.GUINEA, WP.CAPE_W, WP.CAPE_E, WP.MOZ_N, WP.IND_W];
+  // Algeria → Med
+  if (F.id==="SKIKDA" && isMED(T)) return [];
+  return [];
+}
+
+// Major routes (origin port → destination port)
+const ROUTES = [
+  // Qatar → Asia & Europe
+  {from:"RASLAF", to:"FUTTSU", flow:"major"},
+  {from:"RASLAF", to:"INCHEON", flow:"major"},
+  {from:"RASLAF", to:"DHAM", flow:"major"},
+  {from:"RASLAF", to:"MILFD", flow:"major"},
+  {from:"RASLAF", to:"ZEEB", flow:"major"},
+  {from:"RASLAF", to:"YANT", flow:"med"},
+  // US Gulf → Europe
+  {from:"SABINE", to:"GATE", flow:"major"},
+  {from:"SABINE", to:"MONT", flow:"med"},
+  {from:"CORPUS", to:"MILFD", flow:"major"},
+  {from:"CORPUS", to:"BARC", flow:"med"},
+  {from:"FREEPT", to:"ZEEB", flow:"med"},
+  {from:"PLAQ",   to:"GATE", flow:"med"},
+  // US Gulf → Asia (Panama)
+  {from:"SABINE", to:"INCHEON", flow:"med"},
+  {from:"CORPUS", to:"FUTTSU", flow:"med"},
+  {from:"CALC",   to:"TANGSH", flow:"med"},
+  // US Gulf → LatAm
+  {from:"SABINE", to:"ESC", flow:"low"},
+  {from:"PLAQ",   to:"PEC", flow:"low"},
+  // Australia → Asia
+  {from:"GORGON", to:"FUTTSU", flow:"major"},
+  {from:"WHEAT",  to:"INCHEON", flow:"med"},
+  {from:"ICHTHY", to:"SENBOK", flow:"major"},
+  {from:"GLNG",   to:"TANGSH", flow:"med"},
+  {from:"GORGON", to:"YANT", flow:"med"},
+  // Malaysia/Indonesia → Asia
+  {from:"BINTULU",to:"NEGISH", flow:"major"},
+  {from:"BONTANG",to:"INCHEON", flow:"med"},
+  {from:"TANGG",  to:"SENBOK", flow:"med"},
+  // Russia
+  {from:"YAMAL",  to:"ZEEB", flow:"med"},
+  {from:"YAMAL",  to:"TANGSH", flow:"low"},
+  {from:"SAKH",   to:"FUTTSU", flow:"major"},
+  // Algeria / Egypt / Nigeria
+  {from:"SKIKDA", to:"BARC", flow:"med"},
+  {from:"SKIKDA", to:"PIOM", flow:"med"},
+  {from:"IDKU",   to:"REVTHS", flow:"low"},
+  {from:"BONNY",  to:"SINES", flow:"med"},
+  {from:"BONNY",  to:"MONT", flow:"low"},
+  {from:"BONNY",  to:"DHAM", flow:"med"}
+];
+
+// 30 vessels in transit / at port. Each sits on one of the above routes.
+const VESSELS = [
+  {imo:"9765432", name:"AL KHATTIYA",    op:"Nakilat",    cap:266, flag:"QAT", built:2009, route:0, progress:0.62, speed:17.8, status:"TRANSIT", eta:"APR 26, 08:14Z"},
+  {imo:"9412881", name:"ARCTIC AURORA",  op:"Dynagas",    cap:155, flag:"LBR", built:2013, route:25, progress:0.34, speed:14.2, status:"TRANSIT", eta:"APR 29, 22:10Z"},
+  {imo:"9734511", name:"MARIA ENERGY",   op:"Maran Gas",  cap:174, flag:"GRC", built:2017, route:7,  progress:0.78, speed:18.1, status:"TRANSIT", eta:"APR 24, 11:40Z"},
+  {imo:"9847201", name:"FLEX CONSTELLATION",op:"Flex LNG",cap:174, flag:"BMU", built:2019, route:18, progress:0.44, speed:16.9, status:"TRANSIT", eta:"APR 28, 03:22Z"},
+  {imo:"9645718", name:"GASELYS",        op:"NYK",        cap:154, flag:"FRA", built:2007, route:30, progress:0.88, speed:15.3, status:"DISCHARGE", eta:"APR 22, 02:00Z"},
+  {imo:"9512330", name:"VELIKIY NOVGOROD",op:"Sovcomflot",cap:170, flag:"CYP", built:2014, route:26, progress:0.12, speed:13.6, status:"LOADING", eta:"MAY 04, 18:00Z"},
+  {imo:"9868012", name:"PRISM DIVERSITY",op:"Eneos",      cap:174, flag:"JPN", built:2021, route:2,  progress:0.55, speed:17.2, status:"TRANSIT", eta:"APR 27, 10:15Z"},
+  {imo:"9734598", name:"BW LESMES",      op:"BW LNG",     cap:174, flag:"SGP", built:2019, route:12, progress:0.71, speed:18.4, status:"TRANSIT", eta:"APR 25, 06:42Z"},
+  {imo:"9645720", name:"WOODSIDE ROGERS",op:"Woodside",   cap:159, flag:"AUS", built:2013, route:20, progress:0.39, speed:15.8, status:"TRANSIT", eta:"APR 28, 14:08Z"},
+  {imo:"9421904", name:"AL GHARRAFA",    op:"Nakilat",    cap:216, flag:"MHL", built:2008, route:3,  progress:0.24, speed:14.9, status:"TRANSIT", eta:"APR 30, 19:55Z"},
+  {imo:"9823501", name:"CORAL SHALINI",  op:"Anthony Veder",cap:6.5,flag:"NLD", built:2022, route:28, progress:0.91, speed:12.7, status:"DISCHARGE", eta:"APR 21, 23:10Z"},
+  {imo:"9788231", name:"YAKOV GAKKEL",   op:"Sovcomflot", cap:172, flag:"RUS", built:2020, route:27, progress:0.18, speed:11.0, status:"TRANSIT", eta:"MAY 06, 12:00Z"},
+  {imo:"9899000", name:"MERIDIAN SPIRIT",op:"Teekay",     cap:165, flag:"BHS", built:2010, route:5,  progress:0.67, speed:17.6, status:"TRANSIT", eta:"APR 26, 15:30Z"},
+  {imo:"9732119", name:"PACIFIC BREEZE", op:"MOL",        cap:155, flag:"PAN", built:2016, route:19, progress:0.82, speed:18.9, status:"TRANSIT", eta:"APR 23, 08:12Z"},
+  {imo:"9512101", name:"SEVILLA KNUTSEN",op:"Knutsen",    cap:173, flag:"ESP", built:2010, route:9,  progress:0.48, speed:16.1, status:"TRANSIT", eta:"APR 27, 21:40Z"},
+  {imo:"9650187", name:"AL SAFLIYA",     op:"Nakilat",    cap:210, flag:"MHL", built:2007, route:4,  progress:0.05, speed:10.2, status:"LOADING", eta:"MAY 08, 04:00Z"},
+  {imo:"9812340", name:"GASLOG WINDSOR", op:"GasLog",     cap:180, flag:"MLT", built:2020, route:8,  progress:0.73, speed:17.4, status:"TRANSIT", eta:"APR 25, 11:20Z"},
+  {imo:"9455121", name:"METHANE SPIRIT", op:"Teekay",     cap:165, flag:"BHS", built:2008, route:1,  progress:0.29, speed:15.5, status:"TRANSIT", eta:"APR 29, 17:55Z"},
+  {imo:"9920111", name:"LNG MERAK",      op:"MOL",        cap:174, flag:"SGP", built:2023, route:22, progress:0.58, speed:17.0, status:"TRANSIT", eta:"APR 26, 22:45Z"},
+  {imo:"9734522", name:"CASTILLO DE CALDELAS",op:"Elcano",cap:173, flag:"ESP", built:2018, route:28, progress:0.36, speed:15.7, status:"TRANSIT", eta:"APR 29, 05:25Z"},
+  {imo:"9845712", name:"BW MAGNA",       op:"BW LNG",     cap:174, flag:"SGP", built:2021, route:13, progress:0.61, speed:17.8, status:"TRANSIT", eta:"APR 26, 02:00Z"},
+  {imo:"9767823", name:"RUDOLF SAMOYLOVICH",op:"Sovcomflot",cap:172,flag:"RUS", built:2018, route:27, progress:0.97, speed:8.5, status:"DISCHARGE", eta:"APR 21, 19:20Z"},
+  {imo:"9511234", name:"NIKOLAY ZUBOV",  op:"Sovcomflot", cap:170, flag:"CYP", built:2015, route:25, progress:0.08, speed:9.8, status:"LOADING", eta:"MAY 05, 15:00Z"},
+  {imo:"9888321", name:"DIAMOND GAS SAKURA",op:"MOL",     cap:165, flag:"BHS", built:2019, route:20, progress:0.75, speed:18.2, status:"TRANSIT", eta:"APR 24, 20:05Z"},
+  {imo:"9645123", name:"AL SADD",        op:"Nakilat",    cap:216, flag:"MHL", built:2008, route:6,  progress:0.51, speed:16.4, status:"TRANSIT", eta:"APR 27, 14:30Z"},
+  {imo:"9723004", name:"CLEAN HORIZON",  op:"Flex LNG",   cap:174, flag:"BMU", built:2019, route:16, progress:0.15, speed:12.8, status:"LOADING", eta:"MAY 03, 09:10Z"},
+  {imo:"9911220", name:"ENERGY GLORY",   op:"Maran Gas",  cap:174, flag:"GRC", built:2022, route:11, progress:0.42, speed:16.7, status:"TRANSIT", eta:"APR 28, 12:00Z"},
+  {imo:"9767812", name:"PRISM COURAGE",  op:"Eneos",      cap:174, flag:"JPN", built:2017, route:17, progress:0.68, speed:17.1, status:"TRANSIT", eta:"APR 25, 23:50Z"},
+  {imo:"9823450", name:"LNG ROSENROT",   op:"Awilco",     cap:174, flag:"MLT", built:2020, route:10, progress:0.88, speed:15.0, status:"DISCHARGE", eta:"APR 22, 06:30Z"},
+  {imo:"9645888", name:"AL MAYEDA",      op:"Nakilat",    cap:266, flag:"QAT", built:2009, route:23, progress:0.33, speed:16.0, status:"TRANSIT", eta:"APR 29, 08:40Z"}
+];
+
+// small synthetic price history for sparkline
+function genSeries(n, start, vol){
+  const out=[start];
+  for(let i=1;i<n;i++) out.push(Math.max(0.1, out[i-1]+(Math.random()-0.5)*vol));
+  return out;
+}
+const SERIES = {
+  TTF: genSeries(40, 38.5, 0.6),
+  JKM: genSeries(40, 13.8, 0.35),
+  HH:  genSeries(40, 2.15, 0.06)
+};
+
+// Per-vessel price series (deterministic seed by IMO so they're stable per ship)
+function seedRand(seed){
+  let s = seed;
+  return () => { s = (s*1664525 + 1013904223) | 0; return ((s>>>0) / 4294967296); };
+}
+function vesselSeries(imo){
+  const r = seedRand(parseInt(imo, 10));
+  // starting price varies by vessel to feel like each cargo has its own netback
+  const start = 12 + r()*3.5;     // JKM-ish band 12..15.5
+  const vol   = 0.18 + r()*0.3;   // per-vessel volatility
+  const n = 40;
+  const out = [start];
+  for (let i=1;i<n;i++) out.push(Math.max(0.5, out[i-1] + (r()-0.5)*vol));
+  return { data: out, vol };
+}
+const VESSEL_SERIES = {};
+VESSELS.forEach(v => VESSEL_SERIES[v.imo] = vesselSeries(v.imo));
+
+</script>
+<script>
+// ============================================================
+// GLOBE: orthographic projection, rotating 3D-looking map
+// ============================================================
+// Uses a compact world topology (countries-110m) loaded from unpkg.
+// Falls back to a schematic continents path if offline.
+
+const GLOBE = (() => {
+  const CX = 500, CY = 300, R = 285;
+  let lon0 = -40, lat0 = 18; // rotation
+  let land = null;           // array of polygon rings [[lon,lat],...]
+  let spinning = true;
+  let spinSpeed = 0.12;      // deg per frame
+  let zoom = 1;
+
+  // --- simple sphere projection (orthographic) ---
+  function proj(lon, lat){
+    const λ = (lon - lon0) * Math.PI/180;
+    const φ = lat * Math.PI/180;
+    const φ0 = lat0 * Math.PI/180;
+    const cosC = Math.sin(φ0)*Math.sin(φ) + Math.cos(φ0)*Math.cos(φ)*Math.cos(λ);
+    const x = Math.cos(φ)*Math.sin(λ);
+    const y = Math.cos(φ0)*Math.sin(φ) - Math.sin(φ0)*Math.cos(φ)*Math.cos(λ);
+    return { x: CX + R*zoom*x, y: CY - R*zoom*y, visible: cosC >= -0.02, cosC };
+  }
+
+  // great-circle interpolation between two lon/lat
+  function greatCircle(a, b, n=64){
+    const φ1=a[1]*Math.PI/180, λ1=a[0]*Math.PI/180;
+    const φ2=b[1]*Math.PI/180, λ2=b[0]*Math.PI/180;
+    const d = 2*Math.asin(Math.sqrt(Math.sin((φ2-φ1)/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin((λ2-λ1)/2)**2));
+    const pts = [];
+    if (d === 0){ return [a, b]; }
+    for(let i=0;i<=n;i++){
+      const f = i/n;
+      const A = Math.sin((1-f)*d)/Math.sin(d);
+      const B = Math.sin(f*d)/Math.sin(d);
+      const x = A*Math.cos(φ1)*Math.cos(λ1) + B*Math.cos(φ2)*Math.cos(λ2);
+      const y = A*Math.cos(φ1)*Math.sin(λ1) + B*Math.cos(φ2)*Math.sin(λ2);
+      const z = A*Math.sin(φ1) + B*Math.sin(φ2);
+      const lat = Math.atan2(z, Math.sqrt(x*x+y*y))*180/Math.PI;
+      const lon = Math.atan2(y,x)*180/Math.PI;
+      pts.push([lon,lat]);
+    }
+    return pts;
+  }
+
+  // interpolate point along great circle at fraction f (0..1)
+  function greatCirclePoint(a, b, f){
+    const φ1=a[1]*Math.PI/180, λ1=a[0]*Math.PI/180;
+    const φ2=b[1]*Math.PI/180, λ2=b[0]*Math.PI/180;
+    const d = 2*Math.asin(Math.sqrt(Math.sin((φ2-φ1)/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin((λ2-λ1)/2)**2));
+    if (d === 0) return a;
+    const A = Math.sin((1-f)*d)/Math.sin(d);
+    const B = Math.sin(f*d)/Math.sin(d);
+    const x = A*Math.cos(φ1)*Math.cos(λ1) + B*Math.cos(φ2)*Math.cos(λ2);
+    const y = A*Math.cos(φ1)*Math.sin(λ1) + B*Math.cos(φ2)*Math.sin(λ2);
+    const z = A*Math.sin(φ1) + B*Math.sin(φ2);
+    return [ Math.atan2(y,x)*180/Math.PI, Math.atan2(z, Math.sqrt(x*x+y*y))*180/Math.PI ];
+  }
+
+  // draw a path from lon/lat ring, splitting across horizon
+  function ringToSegments(ring, isFront){
+    const segs = [];
+    let cur = [];
+    for (let i=0;i<ring.length;i++){
+      const p = proj(ring[i][0], ring[i][1]);
+      const keep = isFront ? p.cosC >= -0.005 : p.cosC <  0.005;
+      if (keep){
+        cur.push(`${p.x.toFixed(1)},${p.y.toFixed(1)}`);
+      } else if (cur.length){
+        segs.push(cur); cur=[];
+      }
+    }
+    if (cur.length) segs.push(cur);
+    return segs.filter(s=>s.length>1).map(s=>"M"+s.join("L"));
+  }
+
+  // graticule
+  function buildGraticule(){
+    const g = document.getElementById("graticule");
+    let d = "";
+    for (let lon=-180; lon<=180; lon+=20){
+      const ring=[]; for (let lat=-80; lat<=80; lat+=2) ring.push([lon,lat]);
+      d += ringToSegments(ring, true).join(" ") + " ";
+    }
+    for (let lat=-80; lat<=80; lat+=20){
+      const ring=[]; for (let lon=-180; lon<=180; lon+=2) ring.push([lon,lat]);
+      d += ringToSegments(ring, true).join(" ") + " ";
+    }
+    g.innerHTML = `<path class="graticule" d="${d}"/>`;
+    // equator
+    const eq=[]; for (let lon=-180; lon<=180; lon+=2) eq.push([lon,0]);
+    const eqD = ringToSegments(eq, true).join(" ");
+    g.innerHTML += `<path class="equator" d="${eqD}"/>`;
+  }
+
+  function buildLand(){
+    if (!land) return;
+    const front = document.getElementById("land-front");
+    const back  = document.getElementById("land-back");
+    let df="", db="";
+    for (const ring of land){
+      df += ringToSegments(ring, true).join(" ") + " ";
+      db += ringToSegments(ring, false).join(" ") + " ";
+    }
+    front.innerHTML = `<path class="land" d="${df}"/>`;
+    back.innerHTML  = `<path class="land-back" d="${db}"/>`;
+  }
+
+  function buildPorts(){
+    const g = document.getElementById("ports");
+    let html = "";
+    PORTS.forEach(p => {
+      const pr = proj(p.lon, p.lat);
+      if (!pr.visible) return;
+      const cls = p.type === "export" ? "" : "imp";
+      const r = p.mtpa ? Math.min(3.6, 1.6 + Math.sqrt(p.mtpa)/3) : 1.6;
+      html += `<g transform="translate(${pr.x.toFixed(1)},${pr.y.toFixed(1)})">
+        <circle class="port-dot ${cls}" r="${r.toFixed(1)}"/>
+        ${p.mtpa && p.mtpa>=15 ? `<circle r="${(r+3).toFixed(1)}" fill="none" stroke="${p.type==='export'?'#3ecf7a':'#d94444'}" stroke-width=".5" opacity=".35"/>` : ''}
+        <text class="port-label" x="${(r+3).toFixed(1)}" y="2">${p.name.toUpperCase()}</text>
+      </g>`;
+    });
+    g.innerHTML = html;
+  }
+
+  function buildRoutes(){
+    const g = document.getElementById("routes");
+    let html = "";
+    ROUTES.forEach((r,i) => {
+      const a = PORT_BY_ID[r.from], b = PORT_BY_ID[r.to];
+      if(!a||!b) return;
+      const wps = routeWaypoints(r.from, r.to);
+      const chain = [[a.lon,a.lat], ...wps, [b.lon,b.lat]];
+      let pts = [];
+      for (let k=0; k<chain.length-1; k++){
+        const seg = greatCircle(chain[k], chain[k+1], 24);
+        pts = pts.concat(k===0 ? seg : seg.slice(1));
+      }
+      const segs = ringToSegments(pts, true);
+      const w = r.flow==="major" ? 1.4 : r.flow==="med" ? 1.0 : 0.6;
+      const color = a.type==="export" ? "#3ecf7a" : "#d94444";
+      const opacity = r.flow==="major" ? .55 : r.flow==="med" ? .38 : .25;
+      segs.forEach(d => {
+        html += `<path class="route-path" d="${d}" stroke="${color}" stroke-width="${w}" opacity="${opacity}"/>`;
+      });
+      // destination arrow color coded red (import)
+      const segsRed = segs.slice(-1);
+      segsRed.forEach(d => {
+        html += `<path class="route-path" d="${d}" stroke="#d94444" stroke-width="${w}" opacity="0"/>`;
+      });
+    });
+    g.innerHTML = html;
+  }
+
+  function vesselPosition(v){
+    const rt = ROUTES[v.route];
+    if (!rt) return null;
+    const a = PORT_BY_ID[rt.from], b = PORT_BY_ID[rt.to];
+    if (!a || !b) return null;
+    const wps = routeWaypoints(rt.from, rt.to);
+    const chain = [[a.lon,a.lat], ...wps, [b.lon,b.lat]];
+    // position along chain by fraction of total great-circle length
+    const lens = [];
+    let total = 0;
+    for (let k=0;k<chain.length-1;k++){
+      const φ1=chain[k][1]*Math.PI/180, λ1=chain[k][0]*Math.PI/180;
+      const φ2=chain[k+1][1]*Math.PI/180, λ2=chain[k+1][0]*Math.PI/180;
+      const d = 2*Math.asin(Math.sqrt(Math.sin((φ2-φ1)/2)**2+Math.cos(φ1)*Math.cos(φ2)*Math.sin((λ2-λ1)/2)**2));
+      lens.push(d); total += d;
+    }
+    if (total===0) return {lon:a.lon,lat:a.lat,from:a,to:b};
+    let target = v.progress * total, acc = 0;
+    for (let k=0;k<lens.length;k++){
+      if (acc + lens[k] >= target){
+        const f = (target - acc)/lens[k];
+        const [lon,lat] = greatCirclePoint(chain[k], chain[k+1], f);
+        return {lon,lat,from:a,to:b};
+      }
+      acc += lens[k];
+    }
+    return {lon:b.lon,lat:b.lat,from:a,to:b};
+  }
+  // remove old vesselPosition below
+  function __unused_vp(v){
+    if (!r) return null;
+    const a = PORT_BY_ID[r.from], b = PORT_BY_ID[r.to];
+    if (!a || !b) return null;
+    const [lon,lat] = greatCirclePoint([a.lon,a.lat],[b.lon,b.lat], v.progress);
+    return {lon,lat,from:a,to:b};
+  }
+
+  function buildVessels(selectedImo){
+    const g = document.getElementById("vessels");
+    const labels = document.getElementById("vlabels");
+    let svg = "";
+    let html = "";
+    const wrap = document.getElementById("globe-wrap");
+    const vb = document.getElementById("globe");
+    const rect = vb.getBoundingClientRect();
+    const scaleX = rect.width / 1000, scaleY = rect.height / 600;
+
+    VESSELS.forEach(v => {
+      const pos = vesselPosition(v);
+      if (!pos) return;
+      const pr = proj(pos.lon, pos.lat);
+      if (!pr.visible) return;
+      const color = v.status==="DISCHARGE" ? "#d94444"
+                  : v.status==="LOADING"   ? "#c89030"
+                  : "#3ecf7a";
+      const active = v.imo === selectedImo;
+      svg += `<g class="ves-dot ${active?'active':''}" data-imo="${v.imo}" transform="translate(${pr.x.toFixed(1)},${pr.y.toFixed(1)})">
+        <circle class="ves-ring" r="5" stroke="${color}"/>
+        <rect class="ves-core" x="-2.6" y="-2.6" width="5.2" height="5.2" fill="${color}" stroke="#000" stroke-width=".5" transform="rotate(45)"/>
+        <circle class="ves-hit" r="10"/>
+      </g>`;
+
+      if (active){
+        const cls = v.status==="DISCHARGE"?"red":v.status==="LOADING"?"amber":"";
+        const lx = pr.x * scaleX;
+        const ly = pr.y * scaleY;
+        html += `<div class="vlabel ${cls}" style="left:${lx}px;top:${ly}px">
+          ${v.name}
+          <div class="tick">${v.imo} · ${v.speed.toFixed(1)}KN · ${Math.round(v.progress*100)}%</div>
+        </div>`;
+      }
+    });
+    g.innerHTML = svg;
+    labels.innerHTML = html;
+  }
+
+  function redraw(selectedImo){
+    buildGraticule();
+    buildLand();
+    buildRoutes();
+    buildPorts();
+    buildVessels(selectedImo);
+    const latEl=document.getElementById("hud-lat"), lonEl=document.getElementById("hud-lon");
+    if(latEl) latEl.textContent = lat0.toFixed(1)+"°";
+    if(lonEl) lonEl.textContent = lon0.toFixed(1)+"°";
+    const stLat=document.getElementById("st-lat"), stLon=document.getElementById("st-lon");
+    if(stLat) stLat.textContent = (lat0>=0?"+":"")+lat0.toFixed(2)+"°";
+    if(stLon) stLon.textContent = (lon0>=0?"+":"")+lon0.toFixed(2)+"°";
+    const c=document.getElementById("hud-count"); if(c) c.textContent = VESSELS.length;
+    const rr=document.getElementById("hud-routes"); if(rr) rr.textContent = ROUTES.length;
+  }
+
+  // ---- land data: compact inline continents (GeoJSON-ish rings) ----
+  // Very low-poly schematic so no external fetch is required.
+  async function loadLand(){
+    // try real topojson first
+    try{
+      const res = await fetch("https://unpkg.com/world-atlas@2.0.2/countries-110m.json", {cache:"force-cache"});
+      if (res.ok){
+        const topo = await res.json();
+        const obj = topo.objects.countries;
+        const arcs = topo.arcs;
+        const tf = topo.transform;
+        const decode = arc => {
+          let x=0,y=0; const out=[];
+          for (const d of arc){
+            x += d[0]; y += d[1];
+            out.push([ x*tf.scale[0]+tf.translate[0], y*tf.scale[1]+tf.translate[1] ]);
+          }
+          return out;
+        };
+        const decodedArcs = arcs.map(decode);
+        const rings = [];
+        for (const geom of obj.geometries){
+          const feat = geom.arcs;
+          if (geom.type === "Polygon"){
+            for (const r of feat){
+              rings.push(buildRing(r, decodedArcs));
+            }
+          } else if (geom.type === "MultiPolygon"){
+            for (const poly of feat){
+              for (const r of poly){
+                rings.push(buildRing(r, decodedArcs));
+              }
+            }
+          }
+        }
+        land = rings;
+        return;
+      }
+    } catch(e){ /* fallback below */ }
+    // fallback schematic continents (very rough)
+    land = FALLBACK_LAND;
+  }
+
+  function buildRing(ringArcs, decodedArcs){
+    const pts = [];
+    for (const a of ringArcs){
+      const idx = a<0 ? ~a : a;
+      let arc = decodedArcs[idx];
+      if (a<0) arc = arc.slice().reverse();
+      for (const pt of arc){
+        if (pts.length===0 || pts[pts.length-1][0]!==pt[0] || pts[pts.length-1][1]!==pt[1])
+          pts.push(pt);
+      }
+    }
+    return pts;
+  }
+
+  // Interaction: drag to rotate (grab-style: drag-right moves globe right)
+  let dragging=false, sx=0, sy=0, slon=0, slat=0, moved=0;
+  function attachDrag(svg){
+    svg.addEventListener("mousedown", e=>{
+      dragging=true; sx=e.clientX; sy=e.clientY; slon=lon0; slat=lat0; moved=0;
+      spinning=false;
+      document.getElementById("btn-spin").classList.remove("on");
+    });
+    window.addEventListener("mousemove", e=>{
+      if(!dragging) return;
+      const rect = svg.getBoundingClientRect();
+      const dx = (e.clientX - sx) * (360/rect.width);
+      const dy = (e.clientY - sy) * (180/rect.height);
+      moved = Math.max(moved, Math.hypot(e.clientX - sx, e.clientY - sy));
+      // grab-style: dragging right should rotate globe contents right (westward view)
+      lon0 = slon - dx;
+      lat0 = Math.max(-85, Math.min(85, slat + dy));
+    });
+    window.addEventListener("mouseup", ()=>{ dragging=false; });
+    // suppress click if the pointer moved more than a few px (prevents drag-ending-on-vessel from selecting it)
+    svg.addEventListener("click", e=>{
+      if (moved > 4){ e.stopPropagation(); e.preventDefault(); }
+    }, true);
+    svg.addEventListener("wheel", e=>{
+      e.preventDefault();
+      zoom = Math.max(0.6, Math.min(4, zoom * (e.deltaY<0?1.025:0.976)));
+    },{passive:false});
+  }
+
+  function setSpin(on){ spinning = on; }
+  function setZoom(z){ zoom = Math.max(0.6, Math.min(4, z)); }
+  function getZoom(){ return zoom; }
+  function reset(){ lon0=-40; lat0=18; zoom=1; }
+  function tick(){ if (spinning){ lon0 = (lon0 + spinSpeed) % 360; if (lon0>180) lon0-=360; } }
+
+  function getRot(){ return {lon:lon0, lat:lat0}; }
+  function setRot(lon, lat){ lon0 = lon; lat0 = Math.max(-85, Math.min(85, lat)); }
+
+  return { loadLand, redraw, attachDrag, setSpin, setZoom, getZoom, reset, tick,
+           getRot, setRot,
+           vesselPosition, proj, greatCircle };
+})();
+
+// Very schematic fallback continents (only used if topojson fetch fails)
+const FALLBACK_LAND = [
+  // N America
+  [[-168,65],[-140,70],[-100,70],[-80,60],[-60,48],[-70,40],[-80,25],[-95,18],[-115,32],[-125,40],[-135,58],[-150,60],[-168,65]],
+  // S America
+  [[-78,12],[-60,5],[-50,0],[-40,-10],[-38,-25],[-55,-35],[-70,-55],[-75,-45],[-80,-20],[-80,-5],[-78,12]],
+  // Europe
+  [[-10,36],[0,45],[15,45],[30,45],[40,55],[30,60],[10,60],[-5,55],[-10,50],[-10,36]],
+  // Africa
+  [[-17,14],[10,35],[30,30],[45,15],[40,0],[40,-15],[30,-30],[18,-35],[10,-10],[-10,5],[-17,14]],
+  // Asia
+  [[35,45],[60,60],[90,70],[140,70],[160,60],[140,45],[120,25],[100,10],[80,10],[60,25],[50,30],[35,45]],
+  // Australia
+  [[115,-12],[135,-12],[150,-18],[150,-35],[130,-35],[115,-35],[115,-22],[115,-12]],
+  // Antarctica rim
+  [[-180,-75],[-90,-80],[0,-78],[90,-80],[180,-75]]
+];
+
+</script>
+<script>
+// ============================================================
+// APP: list, ticker, detail panel, interactions
+// ============================================================
+(function(){
+  let selectedImo = VESSELS[0].imo;
+  let filter = "ALL";
+
+  // ---- Ticker ----
+  function buildTicker(){
+    const items = [];
+    PORTS.filter(p=>p.type==="export" && p.mtpa>=8).forEach(p=>{
+      const chg = (Math.random()*4-2).toFixed(2);
+      const cls = chg>=0 ? "up" : "down";
+      const sign = chg>=0 ? "▲" : "▼";
+      items.push(`<span class="tick"><b>${p.id}</b>${p.mtpa.toFixed(1)}MT <span class="${cls}">${sign}${Math.abs(chg)}%</span></span>`);
+    });
+    VESSELS.slice(0,20).forEach(v=>{
+      const chg = (Math.random()*2-1).toFixed(2);
+      const cls = v.status==="DISCHARGE"?"down":v.status==="LOADING"?"up":(chg>=0?"up":"down");
+      const sign = chg>=0?"▲":"▼";
+      items.push(`<span class="tick"><b>${v.name}</b>${v.speed.toFixed(1)}KN <span class="${cls}">${sign}${Math.abs(chg)}%</span></span>`);
+    });
+    // stitch twice for continuous scroll
+    const html = items.join('<span class="sep">|</span>') + '<span class="sep">|</span>' + items.join('<span class="sep">|</span>');
+    document.getElementById("ticker-track").innerHTML = html;
+  }
+
+  // ---- Cargo list ----
+  function buildList(){
+    const list = document.getElementById("cargo-list");
+    let filtered = VESSELS;
+    if (filter !== "ALL") filtered = VESSELS.filter(v=>v.status===filter);
+    document.getElementById("count-total").textContent = filtered.length.toString().padStart(2,"0");
+    document.getElementById("hud-tracked").textContent = VESSELS.length + " UNITS";
+    let html = "";
+    filtered.forEach(v => {
+      const r = ROUTES[v.route];
+      const from = PORT_BY_ID[r.from], to = PORT_BY_ID[r.to];
+      const cls = v.status==="DISCHARGE" ? "discharge" : v.status==="LOADING" ? "port" : "";
+      const active = v.imo===selectedImo ? "active" : "";
+      html += `<div class="row ${cls} ${active}" data-imo="${v.imo}">
+        <div class="stat-dot"></div>
+        <div>
+          <div class="name">${v.name}</div>
+          <div class="sub">${from.id} <span class="arrow">→</span> ${to.id} · ${Math.round(v.progress*100)}%</div>
+        </div>
+        <div class="cap">${typeof v.cap==='number' && v.cap<100 ? v.cap+'K' : v.cap+'K'}<small>${v.status}</small></div>
+      </div>`;
+    });
+    list.innerHTML = html;
+    list.querySelectorAll(".row").forEach(row=>{
+      row.addEventListener("click", ()=>{
+        selectedImo = row.dataset.imo;
+        // rotate globe to vessel
+        const v = VESSELS.find(x=>x.imo===selectedImo);
+        const pos = GLOBE.vesselPosition(v);
+        if (pos){ smoothRotate(pos.lon, pos.lat); }
+        buildList();
+        buildDetail();
+      });
+    });
+  }
+
+  function smoothRotate(toLon, toLat){
+    GLOBE.setSpin(false);
+    document.getElementById("btn-spin").classList.remove("on");
+    const start = performance.now();
+    const dur = 700;
+    const s = GLOBE.getRot();
+    // shortest-path wrap
+    let dLon = toLon - s.lon;
+    while (dLon > 180) dLon -= 360;
+    while (dLon < -180) dLon += 360;
+    const dLat = toLat - s.lat;
+    function step(t){
+      const k = Math.min(1,(t-start)/dur);
+      const e = k<.5 ? 2*k*k : -1+(4-2*k)*k;
+      GLOBE.setRot(s.lon + dLon*e, s.lat + dLat*e);
+      if (k<1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  // ---- Detail panel ----
+  function sparkline(series, color, imoKey){
+    const w=290, h=60, pad=4;
+    const min=Math.min(...series), max=Math.max(...series);
+    const sx = i => pad + i*(w-pad*2)/(series.length-1);
+    const sy = v => h-pad - ((v-min)/(max-min||1))*(h-pad*2);
+    const d = series.map((v,i)=> (i===0?"M":"L")+sx(i).toFixed(1)+","+sy(v).toFixed(1)).join("");
+    const last = series[series.length-1];
+    const first = series[0];
+    const chg = ((last-first)/first*100);
+    const chgCls = chg>=0 ? "g" : "r";
+    const chgStr = (chg>=0?"+":"")+chg.toFixed(2)+"%";
+    return `<div class="spark-wrap" data-spark-imo="${imoKey||''}" data-spark-color="${color}">
+      <div class="spark-val mono" style="display:flex;justify-content:space-between;font-size:10px;color:var(--dim);margin-bottom:2px"><span>JKM $${last.toFixed(2)}/MMBtu</span><span class="${chgCls}" style="color:${chg>=0?'#3ecf7a':'#d94444'}">${chgStr}</span></div>
+      <svg class="mini-chart" viewBox="0 0 ${w} ${h}" width="100%" preserveAspectRatio="none">
+        <path class="spark-fill" d="${d} L${w-pad},${h-pad} L${pad},${h-pad} Z" fill="${color}" opacity=".12"/>
+        <path class="spark-line" d="${d}" stroke="${color}" stroke-width="1.2" fill="none"/>
+        <circle class="spark-dot" cx="${sx(series.length-1)}" cy="${sy(last)}" r="2.5" fill="${color}"/>
+      </svg>
+    </div>`;
+  }
+
+  function buildDetail(){
+    const v = VESSELS.find(x=>x.imo===selectedImo);
+    const r = ROUTES[v.route];
+    const from = PORT_BY_ID[r.from], to = PORT_BY_ID[r.to];
+    const statusCls = v.status==="DISCHARGE" ? "discharge" : v.status==="LOADING" ? "port" : "";
+    const color = v.status==="DISCHARGE" ? "#d94444" : v.status==="LOADING" ? "#c89030" : "#3ecf7a";
+    const pct = Math.round(v.progress*100);
+    const distTotal = Math.round(4200 + Math.random()*2200);
+    const distDone  = Math.round(distTotal * v.progress);
+    const fuel = Math.round(92 - v.progress*35);
+    document.getElementById("detail-imo").innerHTML = `IMO <b>${v.imo}</b>`;
+
+    document.getElementById("detail").innerHTML = `
+      <div class="d-hero">
+        <div class="d-name">${v.name}</div>
+        <div class="d-imo">IMO ${v.imo} · ${v.flag} · BUILT ${v.built}</div>
+        <div class="d-status ${statusCls}"><span class="dt"></span>${v.status}</div>
+      </div>
+
+      <div class="d-section">
+        <h4>Vessel</h4>
+        <dl class="kv">
+          <dt>OPERATOR</dt><dd>${v.op}</dd>
+          <dt>CAPACITY</dt><dd class="g">${v.cap}K m³</dd>
+          <dt>SPEED</dt><dd>${v.speed.toFixed(1)} kn</dd>
+          <dt>HEADING</dt><dd>${Math.round(Math.random()*360).toString().padStart(3,'0')}°</dd>
+          <dt>DRAFT</dt><dd>11.4 m</dd>
+        </dl>
+      </div>
+
+      <div class="d-section">
+        <h4>Voyage</h4>
+        <div class="route-block">
+          <div class="route-row load">
+            <div class="bullet"></div>
+            <div class="lbl">${from.name.toUpperCase()}<small>${from.ctry} · LOADING PORT</small></div>
+            <div class="t">${from.lat.toFixed(2)}°, ${from.lon.toFixed(2)}°</div>
+          </div>
+          <div class="route-line"></div>
+          <div class="route-row now">
+            <div class="bullet"></div>
+            <div class="lbl" style="color:${color}">IN TRANSIT · ${pct}%<small>${distDone.toLocaleString()} / ${distTotal.toLocaleString()} nm</small></div>
+            <div class="t">ETA<br/>${v.eta}</div>
+          </div>
+          <div class="route-line"></div>
+          <div class="route-row disc">
+            <div class="bullet"></div>
+            <div class="lbl">${to.name.toUpperCase()}<small>${to.ctry} · DISCHARGE PORT</small></div>
+            <div class="t">${to.lat.toFixed(2)}°, ${to.lon.toFixed(2)}°</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-section">
+        <h4>Cargo</h4>
+        <div class="bars">
+          <div class="bar"><span class="l">VOLUME</span><div class="b"><span style="width:${98}%"></span></div><span class="v">${v.cap}K m³</span></div>
+          <div class="bar"><span class="l">LNG</span><div class="b"><span style="width:96%"></span></div><span class="v">${Math.round(v.cap*0.42)}KT</span></div>
+          <div class="bar"><span class="l">BOIL-OFF</span><div class="b"><span style="width:${12+Math.round(v.progress*8)}%;background:#c89030"></span></div><span class="v" style="color:#c89030">${(0.08+v.progress*0.03).toFixed(2)}%</span></div>
+          <div class="bar r"><span class="l">FUEL</span><div class="b"><span style="width:${fuel}%"></span></div><span class="v">${fuel}%</span></div>
+        </div>
+      </div>
+
+      <div class="d-section">
+        <h4>MKT Spread — JKM / TTF</h4>
+        <dl class="kv">
+          <dt>CARGO VAL</dt><dd class="g">${(v.cap*0.85).toFixed(1)}M</dd>
+          <dt>NETBACK</dt><dd class="${Math.random()>0.4?'g':'r'}">${(Math.random()*4-1).toFixed(2)} $/MMBtu</dd>
+          <dt>DAY RATE</dt><dd>${(60+Math.random()*45).toFixed(0)}K</dd>
+        </dl>
+        ${sparkline(VESSEL_SERIES[v.imo].data, color, v.imo)}
+      </div>
+
+      <div class="d-section">
+        <h4>Events</h4>
+        <div class="route-block">
+          <div class="route-row"><div class="bullet" style="background:#3b4a3a"></div><div class="lbl" style="color:var(--dim)">AIS PING<small>${Math.floor(Math.random()*60)}s ago · nominal</small></div><div class="t"></div></div>
+          <div class="route-row"><div class="bullet" style="background:#3b4a3a"></div><div class="lbl" style="color:var(--dim)">COURSE CHANGE<small>+2.4° ${Math.floor(1+Math.random()*6)}h ago</small></div><div class="t"></div></div>
+          <div class="route-row"><div class="bullet" style="background:#3b4a3a"></div><div class="lbl" style="color:var(--dim)">WEATHER<small>Swell 2.1m · wind 14kn</small></div><div class="t"></div></div>
+        </div>
+      </div>
+    `;
+  }
+
+  // ---- Clock ----
+  function updateClock(){
+    const d = new Date();
+    const fmt = n => n.toString().padStart(2,"0");
+    const mon = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"][d.getUTCMonth()];
+    document.getElementById("clock").textContent = `${fmt(d.getUTCDate())} ${mon} ${d.getUTCFullYear()%100} · ${fmt(d.getUTCHours())}:${fmt(d.getUTCMinutes())}:${fmt(d.getUTCSeconds())} UTC`;
+  }
+
+  // ---- Controls ----
+  function wireControls(){
+    document.querySelectorAll(".fbtn").forEach(b=>{
+      b.addEventListener("click", ()=>{
+        document.querySelectorAll(".fbtn").forEach(x=>x.classList.remove("active"));
+        b.classList.add("active");
+        filter = b.dataset.filter;
+        buildList();
+      });
+    });
+    document.getElementById("btn-spin").addEventListener("click", e=>{
+      const on = !e.currentTarget.classList.contains("on");
+      e.currentTarget.classList.toggle("on", on);
+      GLOBE.setSpin(on);
+    });
+    document.getElementById("btn-zoom-in").addEventListener("click", ()=> GLOBE.setZoom(GLOBE.getZoom()*1.08));
+    document.getElementById("btn-zoom-out").addEventListener("click", ()=> GLOBE.setZoom(GLOBE.getZoom()/1.08));
+    document.getElementById("btn-reset").addEventListener("click", ()=>{ GLOBE.reset(); });
+
+    // clicking a vessel dot on the globe
+    document.getElementById("globe").addEventListener("click", e=>{
+      const g = e.target.closest(".ves-dot");
+      if(!g) return;
+      selectedImo = g.dataset.imo;
+      buildList(); buildDetail();
+    });
+
+    // hovering a vessel: show tooltip
+    const tip = document.getElementById("vtip");
+    const wrap = document.getElementById("globe-wrap");
+    document.getElementById("globe").addEventListener("mousemove", e=>{
+      const g = e.target.closest(".ves-dot");
+      if(!g){ tip.classList.remove("show"); return; }
+      const v = VESSELS.find(x=>x.imo===g.dataset.imo);
+      if(!v){ tip.classList.remove("show"); return; }
+      const r = ROUTES[v.route];
+      const from = PORT_BY_ID[r.from], to = PORT_BY_ID[r.to];
+      const color = v.status==="DISCHARGE" ? "#d94444" : v.status==="LOADING" ? "#c89030" : "#3ecf7a";
+      tip.innerHTML = `<div class="vn"><span class="vs" style="background:${color}"></span>${v.name}</div>
+        <div class="vr">${v.imo} · ${v.cap}K m³ · ${v.speed.toFixed(1)}KN</div>
+        <div class="vr">${from.id} → ${to.id} · ${Math.round(v.progress*100)}% · ${v.status}</div>`;
+      const rect = wrap.getBoundingClientRect();
+      tip.style.left = (e.clientX - rect.left) + "px";
+      tip.style.top  = (e.clientY - rect.top) + "px";
+      tip.classList.add("show");
+    });
+    document.getElementById("globe").addEventListener("mouseleave", ()=>{
+      tip.classList.remove("show");
+    });
+  }
+
+  // ---- Main loop ----
+  let lastFrame = performance.now(), fpsAcc = 0, fpsN = 0;
+  function loop(now){
+    const dt = now - lastFrame; lastFrame = now;
+    fpsAcc += dt; fpsN++;
+    if (fpsN >= 30){
+      document.getElementById("st-fps").textContent = Math.round(1000/(fpsAcc/fpsN));
+      fpsAcc=0; fpsN=0;
+    }
+    GLOBE.tick();
+    GLOBE.redraw(selectedImo);
+    requestAnimationFrame(loop);
+  }
+
+  // ---- Boot ----
+  (async function(){
+    buildTicker();
+    buildList();
+    buildDetail();
+    wireControls();
+    setInterval(updateClock, 1000); updateClock();
+    const svg = document.getElementById("globe");
+    GLOBE.attachDrag(svg);
+
+    // Try to load world coastlines. Fall back gracefully.
+    await GLOBE.loadLand();
+
+    // ---- Live market tick: shift series forward, re-render sparkline in place ----
+    function tickMarkets(){
+      // shift every vessel's series
+      Object.keys(VESSEL_SERIES).forEach(imo => {
+        const s = VESSEL_SERIES[imo];
+        const last = s.data[s.data.length-1];
+        const next = Math.max(0.5, last + (Math.random()-0.5)*s.vol);
+        s.data.push(next);
+        s.data.shift();
+      });
+      // also nudge global TTF/JKM/HH
+      ["TTF","JKM","HH"].forEach(k=>{
+        const arr = SERIES[k];
+        const vol = k==="TTF"?0.6:k==="JKM"?0.35:0.06;
+        arr.push(Math.max(0.1, arr[arr.length-1] + (Math.random()-0.5)*vol));
+        arr.shift();
+      });
+      // re-render only the active sparkline
+      const wrap = document.querySelector(".spark-wrap");
+      if (!wrap) return;
+      const imo = wrap.dataset.sparkImo;
+      const color = wrap.dataset.sparkColor;
+      const series = VESSEL_SERIES[imo]?.data;
+      if (!series) return;
+      const w=290, h=60, pad=4;
+      const min=Math.min(...series), max=Math.max(...series);
+      const sx = i => pad + i*(w-pad*2)/(series.length-1);
+      const sy = v => h-pad - ((v-min)/(max-min||1))*(h-pad*2);
+      const d = series.map((v,i)=> (i===0?"M":"L")+sx(i).toFixed(1)+","+sy(v).toFixed(1)).join("");
+      const last = series[series.length-1];
+      const first = series[0];
+      const chg = ((last-first)/first*100);
+      wrap.querySelector(".spark-line").setAttribute("d", d);
+      wrap.querySelector(".spark-fill").setAttribute("d", `${d} L${w-pad},${h-pad} L${pad},${h-pad} Z`);
+      const dot = wrap.querySelector(".spark-dot");
+      dot.setAttribute("cx", sx(series.length-1));
+      dot.setAttribute("cy", sy(last));
+      // value label
+      const valSpans = wrap.querySelectorAll(".spark-val span");
+      if (valSpans.length >= 2){
+        valSpans[0].textContent = `JKM $${last.toFixed(2)}/MMBtu`;
+        valSpans[1].textContent = (chg>=0?"+":"") + chg.toFixed(2) + "%";
+        valSpans[1].style.color = chg>=0 ? "#3ecf7a" : "#d94444";
+      }
+      // also update ticker "live dot" feel — nothing to do, ticker already scrolls
+    }
+    setInterval(tickMarkets, 1800);
+
+    requestAnimationFrame(loop);
+  })();
+})();
+
+</script>
+</body>
+</html>
