@@ -4,7 +4,6 @@ A Bloomberg-inspired dark terminal for visualizing LNG (Liquefied Natural Gas) s
 
 > ⚠️ **This is a design prototype, not a production tool.** Vessel positions, prices, ETAs, and most numbers shown in the UI are **synthetic / simulated**. See the "Known limitations" section below before reading anything into the data.
 
-![Terminal screenshot](./screenshot.png)
 
 ## What it is
 
